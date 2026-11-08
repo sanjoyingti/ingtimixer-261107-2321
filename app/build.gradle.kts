@@ -29,7 +29,7 @@ android {
 }
 
 dependencies {
-    implementation(files("libs/onnxruntime-java-1.23.2.aar"))
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.23.2")
     implementation("de.sciss:jump3r:1.0.5")
     implementation(files("libs/sherpa-onnx-2.0.0.aar"))
     implementation("net.java.dev.jna:jna:5.17.0@aar")
