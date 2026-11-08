@@ -31,7 +31,7 @@ android {
 dependencies {
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.23.2")
     implementation("de.sciss:jump3r:1.0.5")
-    implementation(files("libs/sherpa-onnx-2.0.0.aar"))
+    implementation("com.bihe0832.android:lib-sherpa-onnx:6.16.12")
     implementation("net.java.dev.jna:jna:5.17.0@aar")
     implementation("androidx.room:room-runtime:2.7.1")
     implementation("androidx.room:room-ktx:2.7.1")
