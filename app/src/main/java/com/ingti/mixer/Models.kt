@@ -22,49 +22,44 @@ class Models(private val context: Context, index: Int = 0) {
     suspend fun verify(): Boolean =
         withContext(Dispatchers.IO) { file.exists() && hash(file) == entry.getString("sha256") }
 
-    private suspend fun hash(f: File): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        f.inputStream().use { input ->
-            val b = ByteArray(128 * 1024)
-            while (true) {
-                currentCoroutineContext().ensureActive()
-                val n = input.read(b)
-                if (n < 0) break
-                digest.update(b, 0, n)
-            }
-        }
-        return digest.digest().joinToString("") { "%02x".format(it) }
-    }
-
-    suspend fun download(progress: (Float) -> Unit): File {
-        file.parentFile?.mkdirs()
-        val url = URL(entry.getString("url"))
-        val connection = url.openConnection() as HttpURLConnection
-        connection.requestProperty("User-Agent", "IngtiMixer/0.3")
-        connection.connect()
-        require(connection.responseCode == 200) { "Download failed: ${connection.responseMessage}" }
-        val length = connection.contentLengthLong()
-        require(length == entry.getLong("bytes")) { "Content length mismatch" }
-        val tmp = File(file.parentFile, "${file.name}.tmp")
-        connection.inputStream.buffered().use { input ->
-            tmp.outputStream().buffered().use { output ->
-                val buffer = ByteArray(128 * 1024)
-                var downloaded = 0L
-                while (true) {
-                    currentCoroutineContext().ensureActive()
-                    val n = input.read(buffer)
-                    if (n < 0) break
-                    output.write(buffer, 0, n)
-                    downloaded += n
-                    progress(downloaded.toFloat() / length)
+    private suspend fun hash(f: File): String =
+        withContext(Dispatchers.IO) {
+            val digest = MessageDigest.getInstance("SHA-256")
+            f.inputStream().buffered().use { input ->
+                val buffer = ByteArray(8192)
+                var read: Int
+                while (input.read(buffer).also { read = it } != -1) {
+                    digest.update(buffer, 0, read)
                 }
             }
+            digest.digest().joinToString("") { "%02x".format(it) }
         }
-        require(tmp.renameTo(file)) { "Failed to finalize model file" }
-        return file
-    }
+
+    suspend fun download(progress: (Float) -> Unit): File =
+        withContext(Dispatchers.IO) {
+            file.parentFile!!.mkdirs()
+            val url = URL(entry.getString("url"))
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            val total = connection.contentLengthLong()
+            var downloaded = 0L
+            connection.inputStream.buffered().use { input ->
+                file.outputStream().buffered().use { output ->
+                    val buffer = ByteArray(8192)
+                    var read: Int
+                    while (input.read(buffer).also { read = it } != -1) {
+                        output.write(buffer, 0, read)
+                        downloaded += read
+                        if (total > 0) progress(downloaded.toFloat() / total)
+                    }
+                }
+            }
+            require(hash(file) == entry.getString("sha256")) { "Model checksum mismatch" }
+            file
+        }
 
     companion object {
-        fun getDefault(context: Context) = Models(context, 0)
+        const val MODEL_2STEM = 0
+        const val MODEL_6STEM = 1
     }
 }

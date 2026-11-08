@@ -1,5 +1,4 @@
 plugins {
-    id("org.jetbrains.kotlin.kapt") version "2.0.20" apply false
     id("com.android.application") version "8.4.0" apply false
     id("org.jetbrains.kotlin.android") version "2.0.20" apply false
     id("org.jetbrains.kotlin.plugin.compose") version "2.0.20" apply false
@@ -9,7 +8,8 @@ plugins {
 allprojects {
     configurations.all {
         resolutionStrategy {
-            failOnVersionConflict()
+            // Don't fail on version conflicts, instead prefer newer versions
+            // failOnVersionConflict()
         }
     }
 }

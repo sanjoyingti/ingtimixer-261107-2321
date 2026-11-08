@@ -1,5 +1,4 @@
 plugins {
-    id("org.jetbrains.kotlin.kapt")
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -103,7 +102,6 @@ dependencies {
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.23.2")
     implementation("de.sciss:jump3r:1.0.5")
     implementation("com.bihe0832.android:lib-sherpa-onnx:6.16.12")
-    // Remove @aar classifier - use standard JAR
     implementation("net.java.dev.jna:jna:5.17.0")
     implementation("androidx.room:room-runtime:2.7.1")
     implementation("androidx.room:room-ktx:2.7.1")
