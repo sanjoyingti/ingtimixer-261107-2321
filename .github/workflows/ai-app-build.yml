@@ -26,6 +26,12 @@ jobs:
           else
             gradle assembleDebug --stacktrace 2>&1 | tee build.log
           fi
+      - name: Report errors
+        if: failure()
+        run: |
+          grep -E "^e: |error:|What went wrong|Could not resolve|FAILURE" -A2 build.log | head -60 | while IFS= read -r l; do
+            echo "::error::${l//%/%25}"
+          done
       - name: Collect APK
         run: |
           APK=$(find . -path "*/build/outputs/apk/*" -name "*.apk" | head -n 1)
