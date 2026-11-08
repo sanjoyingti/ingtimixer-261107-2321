@@ -22,6 +22,7 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         val proxy = System.getenv("INGTI_MAVEN_PROXY")
         if (proxy != null) {
@@ -37,6 +38,8 @@ dependencyResolutionManagement {
             google()
             mavenCentral()
         }
+        // Add JitPack for any dependencies that might need it
+        maven { url = uri("https://jitpack.io") }
     }
 }
 

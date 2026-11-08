@@ -26,13 +26,25 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
+    
+    // Resolve dependency conflicts
+    configurations.all {
+        resolutionStrategy {
+            // Force compatible versions
+            force("androidx.lifecycle:lifecycle-common:2.9.0")
+            force("androidx.lifecycle:lifecycle-runtime:2.9.0")
+            force("androidx.annotation:annotation:1.9.0")
+            force("androidx.collection:collection:1.5.0")
+        }
+    }
 }
 
 dependencies {
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.23.2")
     implementation("de.sciss:jump3r:1.0.5")
     implementation("com.bihe0832.android:lib-sherpa-onnx:6.16.12")
-    implementation("net.java.dev.jna:jna:5.17.0@aar")
+    // Remove @aar classifier - use standard JAR
+    implementation("net.java.dev.jna:jna:5.17.0")
     implementation("androidx.room:room-runtime:2.7.1")
     implementation("androidx.room:room-ktx:2.7.1")
     kapt("androidx.room:room-compiler:2.7.1")
