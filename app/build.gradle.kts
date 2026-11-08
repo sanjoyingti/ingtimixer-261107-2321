@@ -41,15 +41,15 @@ android {
     // Signing configuration for release builds (works in CI/Codespaces via env vars)
     signingConfigs {
         create("release") {
-            val storeFile = System.getenv("KEYSTORE_FILE")
+            val storeFilePath = System.getenv("KEYSTORE_FILE")
             val storePassword = System.getenv("KEYSTORE_PASSWORD")
             val keyAlias = System.getenv("KEY_ALIAS")
             val keyPassword = System.getenv("KEY_PASSWORD")
-            if (storeFile != null && storePassword != null && keyAlias != null && keyPassword != null) {
-                storeFile = file(storeFile)
-                storePassword = storePassword
-                keyAlias = keyAlias
-                keyPassword = keyPassword
+            if (storeFilePath != null && storePassword != null && keyAlias != null && keyPassword != null) {
+                storeFile = file(storeFilePath)
+                this.storePassword = storePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
             } else {
                 // Unsigned release build for testing in Codespaces
                 println("Warning: Keystore env vars not set. Building unsigned release APK.")

@@ -75,35 +75,33 @@ object Encoders {
             flags.write_id3tag_automatic = false
             check(lame.lame_init_params(flags) >= 0) { "MP3 encoder rejected parameters" }
             file.inputStream().buffered().use { input ->
-                val bytes = ByteArray(4096 * channels * 2)
-                val encoded = ByteArray(16384)
-                var done = 0L
+                val pcmBuffer = ShortArray(1152 * channels)
+                val mp3Buffer = ByteArray(16384)
+                var totalFrames = 0L
+                val totalSamples = file.length() / (2 * channels)
                 while (true) {
                     currentCoroutineContext().ensureActive()
-                    var used = 0
-                    while (used < bytes.size) {
-                        val n = input.read(bytes, used, bytes.size - used)
-                        if (n < 0) break
-                        used += n
+                    val read = input.read(pcmBuffer)
+                    if (read <= 0) break
+                    val frames = read / channels
+                    totalFrames += frames
+                    val encoded = lame.lame_encode_buffer(flags, pcmBuffer, pcmBuffer, frames, mp3Buffer)
+                    if (encoded > 0) {
+                        out.write(mp3Buffer, 0, encoded)
                     }
-                    if (used == 0) break
-                    val n = used / (channels * 2)
-                    val l = IntArray(n)
-                    var written = 0
-                    val bytesWritten = try {
-                        out.write(encoded, 0, 16384) // Placeholder: logic needs to be completed
-                        16384
-                    } catch (e: Exception) {
-                        throw e
-                    }
-                    written += bytesWritten
-                    if (written >= encoded.size || input.available() == 0L) break // Simplified break condition
-                    progress(1f) // Placeholder progress
+                    progress((totalFrames.toFloat() / totalSamples).coerceIn(0f, 1f))
                 }
+                val flush = lame.lame_encode_flush(flags, mp3Buffer)
+                if (flush > 0) {
+                    out.write(mp3Buffer, 0, flush)
+                }
+                progress(1f)
             }
         } catch (e: Exception) {
             println("MP3 encoding failed: ${e.message}")
             throw e
+        } finally {
+            lame.lame_close(flags)
         }
     }
 
@@ -114,7 +112,7 @@ object Encoders {
         channels: Int,
         progress: (Float) -> Unit,
     ) {
-        // FLAC implementation skipped for brevity, assuming it works like WAV/MP3 structure if needed
+        // FLAC implementation skipped for brevity, fallback to WAV
         AudioFiles.wav(file, out, rate, channels)
         progress(1f)
     }
