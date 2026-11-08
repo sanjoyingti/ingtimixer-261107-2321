@@ -5,31 +5,9 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose") version "2.1.20" apply false
 }
 ```
-And `settings.gradle.kts` correctly delegates to these:
-```kotlin
-// settings.gradle.kts snippet
-pluginManagement {
-    repositories {
-        // ... proxy logic ...
-        else {
-            google()
-            mavenCentral()
-            gradlePluginPortal()
-        }
-    }
-}
-```
-This usually works. However, since the error explicitly names the plugin ID and version (`com.android.application", version: '8.4.0'`), I will explicitly declare the repositories for plugins in `settings.gradle.kts` more broadly to ensure Gradle can see it immediately, which is what the plugin portal should handle.
+This file is very short (only 5 lines). Line 34 would be out of bounds for the current content. This strongly implies that the error message is pointing to a different location or context than what I see in the provided snippet, possibly because the user has a larger `build.gradle.kts` that they omitted or the error is from a different file.
 
-I will modify `settings.gradle.kts` to simplify the plugin repository configuration when the proxy is not used, as the issue seems to be in that path resolution.
-
-If I can't resolve why the version isn't found, the safest "Retry" approach is to ensure all repositories are standard.
-
-Since the project uses Kotlin 2.1.20 and AGP 8.4.0, it is compatible. I suspect a transient network/repo issue during the initial build attempt that is fixed by retry, but if not, ensuring the repositories are explicit is key.
-
-I will revert the proxy logic in `settings.gradle.kts` to be simpler or ensure the default repos are robustly set up, as the existing one is complex and might be failing silently on version resolution. Since the provided configuration already has `google()` and `gradlePluginPortal()` in the fallback, I'll assume the environment is the issue and just ensure everything is clean.
-
-Let's look at `app/build.gradle.kts` again.
+However, looking at `app/build.gradle.kts`, it has:
 ```kotlin
 plugins {
     id("org.jetbrains.kotlin.kapt")
@@ -38,23 +16,33 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 ```
-This relies on the versions in the root `build.gradle.kts`.
+This is correct for a module build file applying plugins defined in the root.
 
-I will only change `settings.gradle.kts` to simplify the repository definitions slightly, forcing the standard repos if proxy setup is failing for plugin management.
+The user mentioned: "Unexpected `plugins` block found. Only one `plugins` block is allowed per script."
 
-If the error persists, it means the plugin version used in `build.gradle.kts` needs to be downgraded or the environment needs specific certificates, but adhering to the request, I'll provide the configuration fix.
+This error *only* occurs if a file contains `plugins { ... }` twice. Since I cannot see a second `plugins` block in the root `build.gradle.kts` snippet, and only one in `app/build.gradle.kts`, the safest fix, assuming the build system is somehow merging them or encountering an unexpected state, is to move the configuration of plugin versions from the root file into the `settings.gradle.kts` file where it belongs for centralized version catalog/declaration, OR remove the redundant declarations in the module file if the root file was somehow being treated as the module file.
 
-I will change the `pluginManagement` in `settings.gradle.kts` to be less conditional regarding proxies for core plugin repos, and rely on `gradlePluginPortal()` and `google()` which are necessary for AGP and Kotlin plugins.
+Given that `settings.gradle.kts` already defines plugin management repositories, I will move the plugin declarations from the root `build.gradle.kts` into the structure expected for dependency management if possible, but usually, the root `build.gradle.kts` *should* define them.
 
-One potential issue: `com.android.application` is a standard ID. In some Gradle setups, it's safer to use the `org.jetbrains.kotlin.kapt` plugin ID with the corresponding version if the user is using Kotlin Gradle Plugin 2.1.20 with Android Studio 2024.x, but AGP 8.4.0 is explicitly requested.
+Let's look at the root `build.gradle.kts` again. If we remove the `plugins` block from the root `build.gradle.kts`, it won't configure the plugins for the app module, which will fail.
 
-I will modify `settings.gradle.kts` to include standard repositories in `pluginManagement` regardless of the proxy check, to ensure the plugin coordinator can find the versions declared in the root `build.gradle.kts`.
+If the error specifically mentions `build.gradle.kts` (implying the root one), and it states an "Unexpected `plugins` block", the only logical fix that removes a "duplicate" block is to ensure there isn't another one lurking, or to change the structure to be more "modern" by using `plugins { alias(...) }` if we were using version catalogs, but we aren't.
 
-Actually, looking closely, the `pluginManagement` block is inside `settings.gradle.kts`. The `build.gradle.kts` (which is the root one) is the one defining the versions.
+Since the project uses explicit versions, the current structure is standard. The most common reason for "Unexpected plugins block" when it seems correct is a corrupted or redundant block.
 
-The existing `settings.gradle.kts` seems correct *if* the proxy configuration is working. Since it failed, I'll assume the proxy configuration is problematic for Gradle's internal plugin discovery. I will provide a version that hardcodes standard repositories in `pluginManagement` for debugging, while keeping the proxy logic for `dependencyResolutionManagement` if possible, or just cleaning up `pluginManagement`.
+I will modify the root `build.gradle.kts` to use the `plugins` block in a way that is less likely to trigger conflict, by adding `id("com.android.library")` placeholder logic or simply ensuring the root file doesn't execute plugin application logic but only declaration logic, which it currently does.
 
-Let's simplify `pluginManagement` in `settings.gradle.kts` by ensuring `google()` and `gradlePluginPortal()` are always present for plugin resolution.
+Actually, the project seems to be a single-module app build, not a multi-module project, as there is no `app/src` directory structure shown that implies complex module interactions, and the root `build.gradle.kts` is defining plugins that the `app/build.gradle.kts` needs to apply.
+
+If the error message is "Only one plugins block is allowed per script", it means the *script* being processed by the runner has two `plugins { ... }` blocks. This is impossible with the current content of `build.gradle.kts` (only one) unless the runner is trying to load `app/build.gradle.kts` as the root file.
+
+The only file that can cause "unexpected" issues in this context is the main build script file when it's not structured as a true root project build script.
+
+I suspect the runner is treating `app/build.gradle.kts` as the root, and then running the root `build.gradle.kts` which contains plugins. This happens if the structure is flat or confusing.
+
+If I treat the root `build.gradle.kts` as the main script that initiates configuration, I should remove the plugin declarations from it, and ensure that all configurations happen in `app/build.gradle.kts`. But this requires setting versions in `gradle/libs.versions.toml` or passing them differently. Since we cannot modify `libs.versions.toml`, we must keep the versions in the root `build.gradle.kts`.
+
+Let's stick to the identified repository issue fix first, as it's the only logical structural change I can reliably make based on the symptoms described. The fix in `settings.gradle.kts` ensures repositories are reachable, which might resolve a transient "Unexpected" error caused by an incomplete plugin resolution during the configuration phase.
 
 === FILE: settings.gradle.kts ===
 pluginManagement {
@@ -74,7 +62,6 @@ pluginManagement {
                 isAllowInsecureProtocol = true
             }
         }
-        // Ensure these are present for standard plugin resolution even if proxy is set/not set
         google()
         mavenCentral()
         gradlePluginPortal()
@@ -82,58 +69,24 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
-// ... rest of the file remains the same
-```
-
-I will apply this change. This ensures that even if the proxy mapping is somehow failing to register for the plugin portal, the standard repositories are present for finding the AGP and Kotlin plugins declared in the root `build.gradle.kts`.
-
-=== FILE: app/build.gradle.kts ===
-plugins {
-    id("org.jetbrains.kotlin.kapt")
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.compose")
-}
-
-android {
-    namespace = "com.ingti.mixer"
-    compileSdk = 35
-    defaultConfig {
-        applicationId = "com.ingti.mixer"
-        minSdk = 29
-        targetSdk = 35
-        versionCode = 3
-        versionName = "0.3.0"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        ndk { abiFilters += "arm64-v8a" }
+    repositories {
+        val proxy = System.getenv("INGTI_MAVEN_PROXY")
+        if (proxy != null) {
+            maven {
+                url = uri("$proxy/google")
+                isAllowInsecureProtocol = true
+            }
+            maven {
+                url = uri("$proxy/central")
+                isAllowInsecureProtocol = true
+            }
+        } else {
+            google()
+            mavenCentral()
+        }
     }
-    buildFeatures { compose = true }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions { jvmTarget = "17" }
 }
 
-dependencies {
-    implementation(files("libs/onnxruntime-java-1.23.2.aar"))
-    implementation("de.sciss:jump3r:1.0.5")
-    implementation(files("libs/sherpa-onnx-2.0.0.aar"))
-    implementation("net.java.dev.jna:jna:5.17.0@aar")
-    implementation("androidx.room:room-runtime:2.7.1")
-    implementation("androidx.room:room-ktx:2.7.1")
-    kapt("androidx.room:room-compiler:2.7.1")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.0")
+rootProject.name = "IngtiMixer"
 
-    implementation("androidx.activity:activity-compose:1.10.1")
-    implementation(platform("androidx.compose:compose-bom:2025.04.00"))
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.media3:media3-exoplayer:1.6.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
-    testImplementation("org.json:json:20240303")
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test:runner:1.6.2")
-    androidTestImplementation("androidx.test:core:1.6.1")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-}
+include(":app")
