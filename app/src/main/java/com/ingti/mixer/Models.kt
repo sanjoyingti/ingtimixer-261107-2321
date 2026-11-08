@@ -27,9 +27,9 @@ class Models(private val context: Context, index: Int = 0) {
             val digest = MessageDigest.getInstance("SHA-256")
             f.inputStream().buffered().use { input ->
                 val buffer = ByteArray(8192)
-                var read: Int
-                while (input.read(buffer).also { read = it } != -1) {
-                    digest.update(buffer, 0, read)
+                var len: Int
+                while (input.read(buffer).also { len = it } != -1) {
+                    digest.update(buffer, 0, len)
                 }
             }
             digest.digest().joinToString("") { "%02x".format(it) }
@@ -37,29 +37,30 @@ class Models(private val context: Context, index: Int = 0) {
 
     suspend fun download(progress: (Float) -> Unit): File =
         withContext(Dispatchers.IO) {
-            file.parentFile!!.mkdirs()
+            file.parentFile?.mkdirs()
             val url = URL(entry.getString("url"))
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
+            connection.connect()
+            require(connection.responseCode == 200) { "Download failed: ${connection.responseMessage}" }
             val total = connection.contentLengthLong()
             var downloaded = 0L
-            connection.inputStream.buffered().use { input ->
-                file.outputStream().buffered().use { output ->
+            file.outputStream().buffered().use { output ->
+                connection.inputStream.buffered().use { input ->
                     val buffer = ByteArray(8192)
-                    var read: Int
-                    while (input.read(buffer).also { read = it } != -1) {
-                        output.write(buffer, 0, read)
-                        downloaded += read
+                    var len: Int
+                    while (input.read(buffer).also { len = it } != -1) {
+                        output.write(buffer, 0, len)
+                        downloaded += len
                         if (total > 0) progress(downloaded.toFloat() / total)
                     }
                 }
             }
-            require(hash(file) == entry.getString("sha256")) { "Model checksum mismatch" }
+            require(verify()) { "Checksum mismatch after download" }
             file
         }
 
     companion object {
-        const val MODEL_2STEM = 0
-        const val MODEL_6STEM = 1
+        fun getModelDir(context: Context) = File(context.filesDir, "models")
     }
 }

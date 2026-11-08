@@ -1,0 +1,25 @@
+{
+  "models": [
+    {
+      "filename": "demucs_fast.onnx",
+      "url": "https://github.com/schmittlauch/IngtiMixer/releases/download/models/demucs_fast.onnx",
+      "bytes": 85000000,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "description": "Fast 2-second window, lower quality"
+    },
+    {
+      "filename": "demucs_balanced.onnx",
+      "url": "https://github.com/schmittlauch/IngtiMixer/releases/download/models/demucs_balanced.onnx",
+      "bytes": 180000000,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "description": "Balanced 6-second window"
+    },
+    {
+      "filename": "demucs_studio.onnx",
+      "url": "https://github.com/schmittlauch/IngtiMixer/releases/download/models/demucs_studio.onnx",
+      "bytes": 350000000,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "description": "Studio 12-second window, highest quality"
+    }
+  ]
+}
