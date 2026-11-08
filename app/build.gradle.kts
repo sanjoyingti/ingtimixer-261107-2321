@@ -37,6 +37,66 @@ android {
             force("androidx.collection:collection:1.5.0")
         }
     }
+
+    // Signing configuration for release builds (works in CI/Codespaces via env vars)
+    signingConfigs {
+        create("release") {
+            val storeFile = System.getenv("KEYSTORE_FILE")
+            val storePassword = System.getenv("KEYSTORE_PASSWORD")
+            val keyAlias = System.getenv("KEY_ALIAS")
+            val keyPassword = System.getenv("KEY_PASSWORD")
+            if (storeFile != null && storePassword != null && keyAlias != null && keyPassword != null) {
+                storeFile = file(storeFile)
+                storePassword = storePassword
+                keyAlias = keyAlias
+                keyPassword = keyPassword
+            } else {
+                // Unsigned release build for testing in Codespaces
+                println("Warning: Keystore env vars not set. Building unsigned release APK.")
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
+            // Generate APK instead of AAB for direct installation in Codespaces
+            isDebuggable = false
+        }
+        getByName("debug") {
+            isDebuggable = true
+            signingConfig = signingConfigs.getByName("release") // Use same config for debug if needed
+        }
+    }
+
+    // Packaging options for native libraries
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+        // Prevent duplicate native libs
+        pickFirsts += listOf(
+            "lib/arm64-v8a/libc++_shared.so",
+            "lib/arm64-v8a/libonnxruntime.so",
+            "lib/arm64-v8a/libsherpa-onnx-c-api.so"
+        )
+    }
+
+    // Ensure we can build APK for Codespaces
+    bundle {
+        abi {
+            enableSplit = false
+        }
+        density {
+            enableSplit = false
+        }
+        language {
+            enableSplit = false
+        }
+    }
 }
 
 dependencies {
