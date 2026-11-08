@@ -19,7 +19,7 @@ android {
     }
     buildFeatures { compose = true }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
+        kotlinCompilerExtensionVersion = "2.0.0"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -31,8 +31,8 @@ android {
     configurations.all {
         resolutionStrategy {
             // Force compatible versions
-            force("androidx.lifecycle:lifecycle-common:2.9.0")
-            force("androidx.lifecycle:lifecycle-runtime:2.9.0")
+            force("androidx.lifecycle:lifecycle-common:2.8.7")
+            force("androidx.lifecycle:lifecycle-runtime:2.8.7")
             force("androidx.annotation:annotation:1.9.0")
             force("androidx.collection:collection:1.5.0")
         }
@@ -48,8 +48,8 @@ dependencies {
     implementation("androidx.room:room-runtime:2.7.1")
     implementation("androidx.room:room-ktx:2.7.1")
     kapt("androidx.room:room-compiler:2.7.1")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
 
     implementation("androidx.activity:activity-compose:1.10.1")
     implementation(platform("androidx.compose:compose-bom:2024.10.00"))
